@@ -43,14 +43,10 @@ export const convertLinkHandler: AppRouteHandler<ConvertLinkRoute> = async (c) =
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
-      accept: 'application/json, text/plain, */*',
+      accept: '*/*',
       'content-type': 'application/json',
-      origin: 'https://affiliate.shopee.vn',
-      referer: 'https://affiliate.shopee.vn/',
-      'user-agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
       'sec-fetch-dest': 'empty',
-      'sec-fetch-mode': 'cors',
       'sec-fetch-site': 'same-origin',
       'sec-ch-ua': '"Google Chrome";v="149", "Chromium";v="149", "Not)A;Brand";v="24"',
       cookie: shopeeCookies,
@@ -78,83 +74,82 @@ export const convertLinkHandler: AppRouteHandler<ConvertLinkRoute> = async (c) =
 }
 
 // 2. Handler: Báo cáo Chuyển đổi (Conversion Reports) (POST)
-export const conversionReportsHandler: AppRouteHandler<ConversionReportsRoute> = (c) => {
-  const { startDate, endDate, status, subId, limit, page } = c.req.valid('json')
+export const conversionReportsHandler: AppRouteHandler<ConversionReportsRoute> = async (c) => {
+  const { shopeeCookies, startDate, endDate, limit, page, order_id, status } = c.req.valid('json')
+  const shopeeBaseApi = c.env?.SHOPEE_BASE_API || 'https://affiliate.shopee.vn/api/v3'
 
-  const currentPage = page || 1
-  const currentLimit = limit || 20
-  const statusFilter = status || 'ALL'
+  // Shopee Vietnam dùng ngày theo UTC+7: đầu ngày cho mốc bắt đầu,
+  // cuối ngày cho mốc kết thúc, tương đương Carbon::startOfDay/endOfDay trong PHP.
+  const purchaseTimeStart = Math.floor(new Date(`${startDate}T00:00:00+07:00`).getTime() / 1000)
+  const purchaseTimeEnd = Math.floor(new Date(`${endDate}T23:59:59+07:00`).getTime() / 1000)
 
-  const mockOrders = [
-    {
-      orderId: 'SHOPEE_ORD_99182736',
-      purchaseTime: '2026-08-21T03:30:00.000Z',
-      productName: 'Tai nghe Bluetooth True Wireless ANC Pro Chống ồn',
-      itemsCount: 1,
-      totalPrice: 350000,
-      commission: 42000,
-      commissionRate: '12.0%',
-      status: 'COMPLETED' as const,
-      subId: 'campaign_fb_ads',
-    },
-    {
-      orderId: 'SHOPEE_ORD_88776655',
-      purchaseTime: '2026-08-21T02:15:20.000Z',
-      productName: 'Củ sạc nhanh 65W GaN Type-C 3 cổng cho Laptop/Điện thoại',
-      itemsCount: 2,
-      totalPrice: 578000,
-      commission: 86700,
-      commissionRate: '15.0%',
-      status: 'COMPLETED' as const,
-      subId: 'banner_top',
-    },
-    {
-      orderId: 'SHOPEE_ORD_55443322',
-      purchaseTime: '2026-08-20T18:45:10.000Z',
-      productName: 'Bàn phím cơ không dây Bluetooth RGB Hot-swap',
-      itemsCount: 1,
-      totalPrice: 699000,
-      commission: 87375,
-      commissionRate: '12.5%',
-      status: 'PENDING' as const,
-      subId: 'campaign_fb_ads',
-    },
-    {
-      orderId: 'SHOPEE_ORD_11223344',
-      purchaseTime: '2026-08-20T10:12:00.000Z',
-      productName: 'Chuột không dây công thái học Silent Click',
-      itemsCount: 1,
-      totalPrice: 220000,
-      commission: 26400,
-      commissionRate: '12.0%',
-      status: 'CANCELLED' as const,
-      subId: 'tiktok_bio',
-    },
-  ]
-
-  let filtered = mockOrders
-  if (statusFilter !== 'ALL') {
-    filtered = filtered.filter((o) => o.status === statusFilter)
-  }
-  if (subId) {
-    filtered = filtered.filter((o) => o.subId.toLowerCase().includes(subId.toLowerCase()))
-  }
-
-  const totalSales = filtered.reduce((acc, curr) => acc + curr.totalPrice, 0)
-  const totalCommission = filtered.reduce((acc, curr) => acc + curr.commission, 0)
-
-  return c.json(
-    {
-      success: true,
-      data: {
-        totalOrders: filtered.length,
-        totalSales,
-        totalCommission,
-        page: currentPage,
-        limit: currentLimit,
-        orders: filtered,
+  if (!Number.isFinite(purchaseTimeStart) || !Number.isFinite(purchaseTimeEnd)) {
+    return c.json(
+      {
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'startDate hoặc endDate không hợp lệ' },
       },
+      400,
+    )
+  }
+
+  if (purchaseTimeStart > purchaseTimeEnd) {
+    return c.json(
+      {
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'startDate không được lớn hơn endDate' },
+      },
+      400,
+    )
+  }
+
+  const baseUrl = shopeeBaseApi.replace(/\/+$/, '')
+  const endpoint = new URL(baseUrl.endsWith('/report/list') ? baseUrl : `${baseUrl}/report/list`)
+  const searchParams = new URLSearchParams({
+    page_num: String(page),
+    page_size: String(limit),
+    purchase_time_s: String(purchaseTimeStart),
+    purchase_time_e: String(purchaseTimeEnd),
+    version: '1',
+  })
+
+  if (order_id?.trim()) {
+    searchParams.set('order_sn', order_id.trim())
+  }
+
+  if (status !== undefined) {
+    searchParams.set('order_status', String(status))
+  }
+
+  endpoint.search = searchParams.toString()
+
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: {
+      accept: '*/*',
+      'content-type': 'application/json',
+      cookie: shopeeCookies,
+      'user-agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+      'sec-fetch-dest': 'empty',
+      'sec-fetch-site': 'same-origin',
+      'sec-ch-ua': '"Google Chrome";v="149", "Chromium";v="149", "Not)A;Brand";v="24"',
     },
-    200,
-  )
+  })
+
+  const rawText = await response.text()
+
+  try {
+    return c.json(JSON.parse(rawText), response.status as any)
+  } catch {
+    return c.json(
+      {
+        error: 'NON_JSON_RESPONSE',
+        status: response.status,
+        message: 'Shopee trả về phản hồi không phải JSON (có thể do Cookie không hợp lệ hoặc bị chặn)',
+        raw: rawText,
+      },
+      response.status as any,
+    )
+  }
 }

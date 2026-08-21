@@ -9,8 +9,8 @@ export const ConvertLinkBodySchema = z
       .string()
       .min(1, 'shopeeCookies là bắt buộc để xác thực Shopee Affiliate')
       .openapi({
-        example: 'SPC_EC=xxx; SPC_F=xxx; SPC_U=xxx; SPC_R_T_ID=xxx;',
-        description: '🔴 [BẮT BUỘC] Chuỗi Cookie đăng nhập tài khoản Shopee Affiliate',
+        example: '',
+        description: '🔴 [BẮT BUỘC] Cookie từ tài khoản Shopee Affiliate',
       }),
     originalLink: z
       .array(
@@ -56,16 +56,11 @@ export const ConvertLinkBodySchema = z
   })
   .openapi('ConvertLinkRequest', {
     example: {
-      shopeeCookies: 'SPC_EC=xxx; SPC_F=xxx; SPC_U=xxx; SPC_R_T_ID=xxx;',
+      shopeeCookies: 'Dán cookies của bạn vào đây.',
       originalLink: [
-        'https://shopee.vn/product/12345678/87654321',
-        'https://shopee.vn/product/88889999/11112222',
+        'https://shopee.vn/product/1453748726/41457868721',
+        'https://s.shopee.vn/AKYyTrle9L',
       ],
-      subId1: 'campaign_fb',
-      subId2: 'banner_top',
-      subId3: 'post_123',
-      subId4: 'creator_01',
-      subId5: 'sale_88',
     },
   })
 
@@ -120,87 +115,178 @@ export const ConversionReportsBodySchema = z
       .string()
       .min(1, 'shopeeCookies là bắt buộc')
       .openapi({
-        example: 'SPC_EC=xxx; SPC_F=xxx; SPC_U=xxx; SPC_R_T_ID=xxx;',
-        description: '🔴 [BẮT BUỘC] Chuỗi Cookie đăng nhập tài khoản Shopee Affiliate',
+        example: '',
+        description: '🔴 [BẮT BUỘC] Cookie từ tài khoản Shopee Affiliate',
       }),
     startDate: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Định dạng ngày bắt đầu phải là YYYY-MM-DD')
-      .optional()
       .openapi({
-        example: '2026-08-01',
-        description: '🟢 [TÙY CHỌN] Ngày bắt đầu thống kê (YYYY-MM-DD)',
+        description: '🔴 [BẮT BUỘC] Ngày bắt đầu thống kê (YYYY-MM-DD)',
       }),
     endDate: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Định dạng ngày kết thúc phải là YYYY-MM-DD')
-      .optional()
       .openapi({
-        example: '2026-08-21',
-        description: '🟢 [TÙY CHỌN] Ngày kết thúc thống kê (YYYY-MM-DD)',
+        description: '🔴 [BẮT BUỘC] Ngày kết thúc thống kê (YYYY-MM-DD)',
       }),
-    status: z
-      .enum(['ALL', 'PENDING', 'COMPLETED', 'CANCELLED'])
-      .optional()
-      .default('ALL')
-      .openapi({
-        example: 'ALL',
-        description: '🟢 [TÙY CHỌN] Trạng thái đơn hàng affiliate cần lọc (mặc định ALL)',
-      }),
-    subId: z
-      .string()
-      .optional()
-      .openapi({
-        example: 'campaign_fb_ads',
-        description: '🟢 [TÙY CHỌN] Lọc báo cáo theo mã sub_id tracking',
-      }),
-    limit: z
-      .number()
-      .min(1)
-      .max(100)
-      .optional()
-      .default(20)
-      .openapi({
-        example: 20,
-        description: '🟢 [TÙY CHỌN] Số lượng bản ghi mỗi trang (mặc định 20, tối đa 100)',
-      }),
+    limit: z.union([z.literal(20), z.literal(40), z.literal(100)]).openapi({
+      example: 20,
+      description: '🔴 [BẮT BUỘC] Số lượng bản ghi mỗi trang, chỉ chấp nhận: 20, 40 hoặc 100',
+    }),
     page: z
       .number()
+      .int()
       .min(1)
-      .optional()
-      .default(1)
       .openapi({
         example: 1,
-        description: '🟢 [TÙY CHỌN] Số thứ tự trang hiện tại (mặc định 1)',
+        description: '🔴 [BẮT BUỘC] Số thứ tự trang hiện tại',
       }),
+    order_id: z.string().optional().openapi({
+      example: '',
+      description: '🟢 [TÙY CHỌN] Mã đơn hàng Shopee; được gửi tới Shopee dưới tên order_sn',
+    }),
+    status: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]).optional().openapi({
+      example: 1,
+      description:
+        '🟢 [TÙY CHỌN] Trạng thái đơn hàng: 1 = Chờ xử lý (Pending), 2 = Đã hoàn thành (Completed), 3 = Đã huỷ (Cancelled), 4 = Chờ người dùng thanh toán (Unpaid)',
+    }),
   })
   .openapi('ConversionReportsRequest')
 
-export const OrderItemSchema = z.object({
-  orderId: z.string().openapi({ example: 'SHOPEE_ORD_88991122' }),
-  purchaseTime: z.string().openapi({ example: '2026-08-21T02:15:30.000Z' }),
-  productName: z.string().openapi({ example: 'Tai nghe Bluetooth True Wireless ANC Pro' }),
-  itemsCount: z.number().openapi({ example: 1 }),
-  totalPrice: z.number().openapi({ example: 350000 }),
-  commission: z.number().openapi({ example: 42000 }),
-  commissionRate: z.string().openapi({ example: '12.0%' }),
-  status: z.enum(['PENDING', 'COMPLETED', 'CANCELLED']).openapi({ example: 'COMPLETED' }),
-  subId: z.string().openapi({ example: 'campaign_fb_ads' }),
+const ConversionReportItemSchema = z.object({
+  item_status: z.string().openapi({ example: 'CANCEL', description: 'Trạng thái nội bộ của sản phẩm' }),
+  display_item_status: z.string().openapi({ example: 'Cancelled', description: 'Tên trạng thái sản phẩm để hiển thị' }),
+  affiliate_item_status: z.number().openapi({ example: 3, description: 'Mã trạng thái affiliate của sản phẩm' }),
+  shop_id: z.number().openapi({ example: 899855963, description: 'ID cửa hàng trên Shopee' }),
+  shop_name: z.string().openapi({ example: 'Aya Mỹ phẩm giá gốc', description: 'Tên cửa hàng' }),
+  promotion_id: z.string().openapi({ example: '', description: 'ID chương trình khuyến mãi' }),
+  model_id: z.string().openapi({ example: '196102823517', description: 'ID phân loại sản phẩm' }),
+  item_id: z.number().openapi({ example: 25879675339, description: 'ID sản phẩm trên Shopee' }),
+  item_name: z.string().openapi({
+    example: 'Dầu gội can to Smig 5000ml và 2000ml dùng siêu tiết kiệm , nhiều bọt , tơi tóc , suôn mượt.',
+    description: 'Tên sản phẩm',
+  }),
+  item_price: z.number().openapi({ example: 27500000000, description: 'Giá sản phẩm theo đơn vị tiền nội bộ của Shopee' }),
+  actual_amount: z.number().openapi({ example: 0, description: 'Giá trị mua thực tế theo đơn vị tiền nội bộ của Shopee' }),
+  refunded_amount: z.number().openapi({ example: 23100000000, description: 'Số tiền hoàn lại theo đơn vị tiền nội bộ của Shopee' }),
+  qty: z.number().openapi({ example: 0, description: 'Số lượng sản phẩm hợp lệ' }),
+  img_code: z.string().openapi({ example: 'vn-11134207-7ra0g-magvvbsh5kuva0', description: 'Mã ảnh sản phẩm' }),
+  item_commission: z.number().openapi({ example: 0, description: 'Hoa hồng của sản phẩm theo đơn vị nội bộ Shopee' }),
+  capped_brand_commission: z.number().openapi({ example: 0, description: 'Hoa hồng thương hiệu sau khi áp dụng giới hạn' }),
+  global_category_lv1_id: z.number().openapi({ example: 100630, description: 'ID danh mục cấp 1' }),
+  global_category_lv2_id: z.number().openapi({ example: 100659, description: 'ID danh mục cấp 2' }),
+  global_category_lv3_id: z.number().openapi({ example: 100869, description: 'ID danh mục cấp 3' }),
+  global_category_lv1_name: z.string().openapi({ example: 'Sắc Đẹp', description: 'Tên danh mục cấp 1' }),
+  global_category_lv2_name: z.string().openapi({ example: 'Chăm sóc tóc', description: 'Tên danh mục cấp 2' }),
+  global_category_lv3_name: z.string().openapi({ example: 'Dầu gội', description: 'Tên danh mục cấp 3' }),
+  is_fraud: z.number().openapi({ example: 0, description: 'Cờ đánh dấu gian lận' }),
+  fraud_reason: z.string().openapi({ example: '', description: 'Lý do bị đánh dấu gian lận' }),
+  fraud_status: z.number().openapi({ example: 2, description: 'Mã trạng thái kiểm tra gian lận' }),
+  brand_commission_rate: z.number().openapi({ example: 2000, description: 'Tỷ lệ hoa hồng thương hiệu theo đơn vị nội bộ Shopee' }),
+  platform_commission_rate: z.number().openapi({ example: 2500, description: 'Tỷ lệ hoa hồng nền tảng theo đơn vị nội bộ Shopee' }),
+  attribution_type: z.number().openapi({ example: 3, description: 'Loại hình ghi nhận chuyển đổi' }),
+  channel: z.number().openapi({ example: 1, description: 'Mã kênh phát sinh đơn hàng' }),
+  campaign_mcn_brand_gross_commission: z.string().openapi({ example: '0', description: 'Tổng hoa hồng thương hiệu của chiến dịch MCN' }),
+  campaign_type: z.number().openapi({ example: 5, description: 'Mã loại chiến dịch' }),
+  ams_order_billing_rate: z.number().openapi({ example: 0, description: 'Tỷ lệ tính phí đơn hàng AMS' }),
+  brand_origin_commission_rate: z.number().openapi({ example: 0, description: 'Tỷ lệ hoa hồng thương hiệu ban đầu' }),
+  campaign_mcn_origin_commission_rate: z.number().openapi({ example: 0, description: 'Tỷ lệ hoa hồng MCN ban đầu' }),
+  platform_calculation_type: z.number().openapi({ example: 1, description: 'Phương thức tính hoa hồng nền tảng' }),
+  platform_commission_campaign_source: z.number().openapi({ example: 1, description: 'Nguồn chiến dịch hoa hồng nền tảng' }),
+})
+
+const ConversionReportOrderSchema = z.object({
+  order_sn: z.string().openapi({ example: '260819RMXYFVVR', description: 'Mã đơn hàng hiển thị trên Shopee' }),
+  order_id: z.string().openapi({ example: '240847148217240', description: 'ID đơn hàng nội bộ Shopee' }),
+  order_status: z.string().openapi({ example: 'CANCEL', description: 'Trạng thái nội bộ của đơn hàng' }),
+  shop_type: z.number().openapi({ example: 1, description: 'Mã loại cửa hàng' }),
+  cancel_reason: z.string().openapi({ example: 'Cancelled by buyer', description: 'Lý do huỷ đơn hàng' }),
+  display_order_status: z.number().openapi({ example: 3, description: 'Mã trạng thái hiển thị: 1 Pending, 2 Completed, 3 Cancelled, 4 Unpaid' }),
+  complete_time: z.number().openapi({ example: 1787234349, description: 'Thời điểm hoàn tất/cập nhật đơn hàng dạng Unix timestamp' }),
+  fraud_complete_time: z.number().openapi({ example: 1787197612, description: 'Thời điểm hoàn tất kiểm tra gian lận dạng Unix timestamp' }),
+  affiliate_transaction_id: z.string().openapi({ example: '101177950101028528', description: 'ID giao dịch affiliate' }),
+  shopee_order_status: z.number().openapi({ example: 3, description: 'Mã trạng thái đơn hàng phía Shopee' }),
+  ams_order_billing_order_cap: z.number().openapi({ example: 0, description: 'Mức trần tính phí đơn hàng AMS' }),
+  is_ams_order_billing_order_capped: z.boolean().openapi({ example: false, description: 'Đơn hàng AMS có bị giới hạn mức tính phí hay không' }),
+  is_fixed_fee: z.boolean().openapi({ example: false, description: 'Đơn hàng có áp dụng mức phí cố định hay không' }),
+  items: z.array(ConversionReportItemSchema).openapi({ description: 'Danh sách sản phẩm thuộc đơn hàng' }),
+})
+
+const ReportPaymentValidationInfoSchema = z.object({
+  validation_cycle: z.number().openapi({ example: 0, description: 'Chu kỳ đối soát' }),
+  estimate_validation_month: z.string().openapi({ example: '', description: 'Tháng dự kiến đối soát' }),
+  estimate_validation_isoweek: z.number().openapi({ example: 0, description: 'Tuần ISO dự kiến đối soát' }),
+  order_estimate_validation_period_start: z.number().openapi({ example: 0, description: 'Unix timestamp bắt đầu kỳ đối soát dự kiến' }),
+  order_estimate_validation_period_end: z.number().openapi({ example: 0, description: 'Unix timestamp kết thúc kỳ đối soát dự kiến' }),
+})
+
+const ConversionReportEntrySchema = z.object({
+  purchase_time: z.number().openapi({ example: 1787147948, description: 'Thời điểm mua hàng dạng Unix timestamp' }),
+  checkout_id: z.string().openapi({ example: '240847148211698', description: 'ID lượt checkout' }),
+  checkout_status: z.string().openapi({ example: 'Invalid', description: 'Trạng thái checkout' }),
+  checkout_status_app: z.number().openapi({ example: 2, description: 'Mã trạng thái checkout trên ứng dụng' }),
+  checkout_cap: z.number().openapi({ example: 4000000000, description: 'Giới hạn giá trị checkout theo đơn vị nội bộ Shopee' }),
+  conversion_status: z.number().openapi({ example: 3, description: 'Mã trạng thái chuyển đổi' }),
+  checkout_complete_time: z.number().openapi({ example: 1787234349, description: 'Thời điểm hoàn tất checkout dạng Unix timestamp' }),
+  affiliate_id: z.number().openapi({ example: 17342207461, description: 'ID tài khoản affiliate' }),
+  affiliate_name: z.string().openapi({ example: 'nguyenphiikhanh', description: 'Tên tài khoản affiliate' }),
+  user_status: z.string().openapi({ example: 'Existing', description: 'Trạng thái người mua mới hoặc hiện hữu' }),
+  ua_type: z.number().openapi({ example: 1, description: 'Mã loại user agent' }),
+  gross_commission: z.number().openapi({ example: 0, description: 'Tổng hoa hồng gộp theo đơn vị nội bộ Shopee' }),
+  capped_commission: z.number().openapi({ example: 0, description: 'Hoa hồng sau khi áp dụng giới hạn' }),
+  total_brand_commission: z.number().openapi({ example: 0, description: 'Tổng hoa hồng thương hiệu' }),
+  estimated_total_commission_with_mcn: z.number().openapi({ example: 0, description: 'Hoa hồng dự kiến bao gồm MCN' }),
+  estimated_total_commission: z.number().openapi({ example: 0, description: 'Tổng hoa hồng dự kiến' }),
+  utm_content: z.string().openapi({ example: 'vMpdArQY----', description: 'Giá trị tracking UTM content/subId' }),
+  content_type: z.string().openapi({ example: '', description: 'Loại nội dung tạo chuyển đổi' }),
+  device: z.string().openapi({ example: 'App', description: 'Thiết bị/kênh thực hiện giao dịch' }),
+  referrer: z.string().openapi({
+    example: '{"internal_source":"","direct_source":"Zalo","indirect_source":"","first_external_source":"","last_external_source":"Zalo"}',
+    description: 'Thông tin nguồn giới thiệu ở dạng chuỗi JSON',
+  }),
+  orders: z.array(ConversionReportOrderSchema).openapi({ description: 'Danh sách đơn hàng của lượt chuyển đổi' }),
+  click_time: z.number().openapi({ example: 1787147916, description: 'Thời điểm click link affiliate dạng Unix timestamp' }),
+  click_id: z.string().openapi({ example: '8024592264c57e8f7db130eee811a617', description: 'ID của lượt click' }),
+  product_type: z.string().openapi({ example: 'mp', description: 'Loại sản phẩm/marketplace' }),
+  internal_source: z.string().openapi({ example: '', description: 'Nguồn traffic nội bộ' }),
+  indirect_source: z.string().openapi({ example: '', description: 'Nguồn traffic gián tiếp' }),
+  direct_source: z.string().openapi({ example: 'Zalo', description: 'Nguồn traffic trực tiếp' }),
+  last_external_source: z.string().openapi({ example: 'Zalo', description: 'Nguồn bên ngoài gần nhất' }),
+  first_external_source: z.string().openapi({ example: '', description: 'Nguồn bên ngoài đầu tiên' }),
+  is_shopee_capped: z.boolean().openapi({ example: false, description: 'Hoa hồng có bị Shopee áp dụng giới hạn hay không' }),
+  attribution_type: z.number().openapi({ example: 2, description: 'Loại hình ghi nhận chuyển đổi' }),
+  estimated_validation_month: z.string().openapi({ example: '', description: 'Tháng dự kiến đối soát' }),
+  report_payment_validation_info: ReportPaymentValidationInfoSchema,
+  affiliate_net_commission: z.string().openapi({ example: '0', description: 'Hoa hồng ròng của affiliate' }),
+  mcn_management_fee_commission: z.string().openapi({ example: '0', description: 'Hoa hồng phí quản lý MCN' }),
+  mcn_management_fee_seller_commission: z.string().openapi({ example: '0', description: 'Hoa hồng người bán thuộc phí quản lý MCN' }),
+  mcn_agreement_id: z.string().openapi({ example: '0', description: 'ID thoả thuận MCN' }),
+  campaign_mcn_id: z.string().openapi({ example: '0', description: 'ID chiến dịch MCN' }),
+  campaign_mcn_name: z.string().openapi({ example: '', description: 'Tên chiến dịch MCN' }),
+  linked_mcn_id: z.string().openapi({ example: '0', description: 'ID MCN liên kết' }),
+  linked_mcn_name: z.string().openapi({ example: '', description: 'Tên MCN liên kết' }),
+  linked_mcn_commission_rate: z.string().openapi({ example: '0', description: 'Tỷ lệ hoa hồng MCN liên kết' }),
+  tenant: z.number().openapi({ example: 1, description: 'Mã tenant/thị trường Shopee' }),
+  app_type: z.number().openapi({ example: 1, description: 'Mã loại ứng dụng' }),
+  traffic_type: z.number().openapi({ example: 0, description: 'Mã loại traffic' }),
+  eligible_seller_commission: z.string().openapi({ example: '0', description: 'Hoa hồng người bán đủ điều kiện' }),
 })
 
 export const ConversionReportsResponseSchema = z
   .object({
-    success: z.boolean().openapi({ example: true }),
+    code: z.number().openapi({ example: 0, description: 'Mã kết quả; 0 là thành công' }),
+    msg: z.string().openapi({ example: 'success', description: 'Thông báo kết quả từ Shopee' }),
     data: z.object({
-      totalOrders: z.number().openapi({ example: 128 }),
-      totalSales: z.number().openapi({ example: 45200000 }),
-      totalCommission: z.number().openapi({ example: 5424000 }),
-      page: z.number().openapi({ example: 1 }),
-      limit: z.number().openapi({ example: 20 }),
-      orders: z.array(OrderItemSchema),
+      page_num: z.number().openapi({ example: 1, description: 'Trang hiện tại' }),
+      page_size: z.number().openapi({ example: 20, description: 'Số bản ghi mỗi trang' }),
+      total_count: z.number().openapi({ example: 1, description: 'Tổng số bản ghi phù hợp' }),
+      list: z.array(ConversionReportEntrySchema).openapi({ description: 'Danh sách conversion report' }),
     }),
   })
-  .openapi('ConversionReportsResponse')
+  .openapi('ConversionReportsResponse', {
+    description: 'Phản hồi báo cáo chuyển đổi thành công từ Shopee Affiliate API',
+  })
 
 // ============================================================================
 // ERROR SCHEMAS: 400 Validation Error & 403 Forbidden Error (Shopee Cookie Error)
@@ -294,7 +380,15 @@ export const conversionReportsRoute = createRoute({
   tags: ['Shopee Affiliate'],
   summary: 'Báo cáo Chuyển đổi (Conversion Reports)',
   description:
-    'Truy xuất báo cáo chi tiết về đơn hàng, doanh số và hoa hồng nhận được trong khoảng thời gian xác định (yêu cầu shopeeCookies).',
+    'Truy xuất báo cáo đơn hàng từ Shopee Affiliate.\n\n' +
+    '**Chi tiết Body:**\n' +
+    '- 🔴 `shopeeCookies` (**Bắt buộc**): Cookie đăng nhập Shopee Affiliate.\n' +
+    '- 🔴 `startDate` (**Bắt buộc**): Ngày bắt đầu theo định dạng `YYYY-MM-DD`, được chuyển thành đầu ngày theo giờ Việt Nam.\n' +
+    '- 🔴 `endDate` (**Bắt buộc**): Ngày kết thúc theo định dạng `YYYY-MM-DD`, được chuyển thành cuối ngày theo giờ Việt Nam.\n' +
+    '- 🔴 `limit` (**Bắt buộc**): Số bản ghi mỗi trang, chỉ chấp nhận `20`, `40` hoặc `100`.\n' +
+    '- 🔴 `page` (**Bắt buộc**): Số thứ tự trang, mặc định là `1`.\n' +
+    '- 🟢 `order_id` (**Tùy chọn**): Mã đơn hàng Shopee.\n' +
+    '- 🟢 `status` (**Tùy chọn**): `1` Chờ xử lý (Pending), `2` Đã hoàn thành (Completed), `3` Đã huỷ (Cancelled), `4` Chờ người dùng thanh toán (Unpaid).',
   request: {
     body: {
       content: {
