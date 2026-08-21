@@ -28,7 +28,9 @@ export function configureOpenAPI(app: AppOpenAPI) {
 - Lưu ý: Đây là tài liệu **Unofficial API**, không phải Open API của Shopee Affiliate
 - Các API được cung cấp trong tài liệu này:
   1. Convert Link Affiliate
-  2. Báo cáo Chuyển đổi (Conversion Reports)`,
+  2. Báo cáo Chuyển đổi (Conversion Reports)
+
+[Author: nguyenphiikhanh](https://www.facebook.com/nguyenphiikhanh)`,
       },
       tags: [],
       servers: [
@@ -78,8 +80,35 @@ export function configureOpenAPI(app: AppOpenAPI) {
             <li>Dán giá trị vừa sao chép vào trường <code>shopeeCookies</code> khi gọi API.</li>
           </ol>
           <img class="cookie-guide__image" src="/images/example.jpg" alt="Minh họa cách lấy Cookies Shopee Affiliate" loading="lazy" />
-          <p class="cookie-guide__warning"><strong>Lưu ý:</strong> Cookies chứa thông tin đăng nhập. Không chia sẻ công khai và hãy lấy lại Cookies khi phiên đăng nhập hết hạn.</p>
+          <p class="cookie-guide__warning"><strong>Lưu ý:</strong> Cookies có thời hạn. Không chia sẻ công khai, lấy lại Cookies khác khi phiên đăng nhập hết hạn.</p>
         </section>
+        <button class="donate-button" id="donate-button" type="button" aria-haspopup="dialog" aria-controls="donate-modal">
+          💝 Donate em gói mỳ
+        </button>
+        <div class="donate-modal" id="donate-modal" role="dialog" aria-modal="true" aria-labelledby="donate-title" hidden>
+          <div class="donate-modal__backdrop"></div>
+          <div class="donate-modal__content">
+            <h2 id="donate-title">API chạy bằng code, dev chạy bằng cà phê ☕</h2>
+            <p>Quét nhẹ mã QR — biết đâu bug thấy vậy cũng tự giác biến mất!</p>
+            <p>A Di Đà Lạt!</p>
+            <img class="donate-modal__qr" src="/images/QR.png" alt="Mã QR donate" />
+            <img class="donate-modal__illustration" src="/images/anxin.webp" alt="Ảnh minh họa donate" />
+            <div class="donate-modal__actions">
+              <button type="button" data-close-donate>Đéo</button>
+              <button type="button" data-close-donate>Không cho</button>
+              <button type="button" data-close-donate>Vẫn là không cho nhưng nằm ở option khác</button>
+              <button type="button" data-close-donate>Cần cù thì bù siêng năng...</button>
+            </div>
+          </div>
+        </div>
+        <div class="donate-modal" id="meme-modal" role="dialog" aria-modal="true" aria-labelledby="meme-title" hidden>
+          <div class="donate-modal__backdrop"></div>
+          <div class="donate-modal__content meme-modal__content">
+            <h2 id="meme-title">Á à nhớ cái mặt nhé &lt;3</h2>
+            <img class="meme-modal__image" src="/images/jackmeme.png" alt="Jack meme" />
+            <button class="meme-modal__button" id="close-meme" type="button">Ô Kê</button>
+          </div>
+        </div>
         ${assets.css.map((url) => `<link rel="stylesheet" href="${url}" />`).join('')}
         <style>
           .cookie-guide {
@@ -117,6 +146,110 @@ export function configureOpenAPI(app: AppOpenAPI) {
             border-left: 4px solid #f59e0b;
             background: #fffbeb;
           }
+          .donate-button {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            z-index: 1000;
+            padding: 9px 14px;
+            border: 0;
+            border-radius: 999px;
+            background: #ee4d2d;
+            box-shadow: 0 4px 14px rgba(238, 77, 45, .35);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+          }
+          .donate-button:hover { background: #d94325; }
+          .donate-button:focus-visible,
+          .donate-modal__actions button:focus-visible { outline: 3px solid rgba(238, 77, 45, .35); outline-offset: 2px; }
+          .donate-modal[hidden] { display: none; }
+          .donate-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 1100;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+            font-family: sans-serif;
+          }
+          .donate-modal__backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, .58);
+          }
+          .donate-modal__content {
+            position: relative;
+            box-sizing: border-box;
+            width: 700px;
+            padding: 20px 26px;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, .25);
+            color: #3b4151;
+            text-align: center;
+          }
+          .donate-modal__content h2 { margin: 0 0 6px; font-size: 22px; }
+          .donate-modal__content p { margin: 0 0 10px; line-height: 1.4; }
+          .donate-modal__qr {
+            display: block;
+            width: 420px;
+            max-height: 360px;
+            height: auto;
+            margin: 0 auto;
+            border-radius: 8px;
+            object-fit: contain;
+          }
+          .donate-modal__illustration {
+            display: block;
+            width: 65px;
+            max-width: 30%;
+            height: auto;
+            margin: 6px auto 0;
+          }
+          .donate-modal__actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+          }
+          .donate-modal__actions button {
+            min-height: 42px;
+            padding: 8px 12px;
+            border: 1px solid #ee4d2d;
+            border-radius: 8px;
+            background: #fff;
+            color: #d94325;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+          }
+          .donate-modal__actions button:hover { background: #fff3f0; }
+          .meme-modal__content { width: 520px; }
+          .meme-modal__image {
+            display: block;
+            width: 100%;
+            max-height: 480px;
+            height: auto;
+            margin: 14px auto;
+            border-radius: 8px;
+            object-fit: contain;
+          }
+          .meme-modal__button {
+            min-width: 120px;
+            padding: 10px 20px;
+            border: 0;
+            border-radius: 8px;
+            background: #ee4d2d;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+          }
+          .meme-modal__button:hover { background: #d94325; }
+          .meme-modal__button:focus-visible { outline: 3px solid rgba(238, 77, 45, .35); outline-offset: 2px; }
+          body.donate-modal-open { overflow: hidden; }
           @media (max-width: 1499px) {
             .cookie-guide { margin-right: 20px; margin-left: 20px; }
           }
@@ -128,6 +261,36 @@ export function configureOpenAPI(app: AppOpenAPI) {
               dom_id: '#swagger-ui',
               url: '/openapi.json',
             })
+
+            const donateButton = document.getElementById('donate-button')
+            const donateModal = document.getElementById('donate-modal')
+            const memeModal = document.getElementById('meme-modal')
+            const closeMemeButton = document.getElementById('close-meme')
+            const openDonate = () => {
+              if (!donateModal.hidden || !memeModal.hidden) return
+              donateModal.hidden = false
+              document.body.classList.add('donate-modal-open')
+              donateModal.querySelector('[data-close-donate]').focus()
+            }
+            const showMeme = () => {
+              donateModal.hidden = true
+              memeModal.hidden = false
+              closeMemeButton.focus()
+            }
+            const closeMeme = () => {
+              memeModal.hidden = true
+              document.body.classList.remove('donate-modal-open')
+              donateButton.focus()
+            }
+
+            donateButton.addEventListener('click', openDonate)
+            donateModal.querySelectorAll('[data-close-donate]').forEach((element) => {
+              element.addEventListener('click', showMeme)
+            })
+            closeMemeButton.addEventListener('click', closeMeme)
+
+            openDonate()
+            window.setInterval(openDonate, 3 * 60 * 1000)
           }
         <\/script>
       `,

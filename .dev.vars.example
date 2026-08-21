@@ -1,0 +1,3 @@
+NODE_ENV=development
+SHOPEE_BASE_API=https://affiliate.shopee.vn/api/v3
+SERVER_URL=http://localhost:8787
