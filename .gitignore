@@ -33,3 +33,5 @@ lerna-debug.log*
 .DS_Store
 
 .agent
+
+worker-configuration.d.ts

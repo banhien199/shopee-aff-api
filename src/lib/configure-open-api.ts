@@ -79,7 +79,7 @@ export function configureOpenAPI(app: AppOpenAPI) {
             <li>Trong <strong>Headers</strong> → <strong>Request Headers</strong>, tìm và sao chép toàn bộ giá trị của header <code>Cookie</code>.</li>
             <li>Dán giá trị vừa sao chép vào trường <code>shopeeCookies</code> khi gọi API.</li>
           </ol>
-          <img class="cookie-guide__image" src="/images/example.jpg" alt="Minh họa cách lấy Cookies Shopee Affiliate" loading="lazy" />
+          <img class="cookie-guide__image" src="/images/example.png" alt="Minh họa cách lấy Cookies Shopee Affiliate" loading="lazy" />
           <p class="cookie-guide__warning"><strong>Lưu ý:</strong> Cookies có thời hạn. Không chia sẻ công khai, lấy lại Cookies khác khi phiên đăng nhập hết hạn.</p>
         </section>
         <button class="donate-button" id="donate-button" type="button" aria-haspopup="dialog" aria-controls="donate-modal">
