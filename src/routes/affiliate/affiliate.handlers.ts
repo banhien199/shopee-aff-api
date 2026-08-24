@@ -2,6 +2,7 @@ import type { AppRouteHandler } from '../../lib/types'
 import type {
   ConversionReportsRoute,
   ConvertLinkRoute,
+  ProductInfoRoute,
 } from './affiliate.routes'
 
 // ============================================================================
@@ -24,7 +25,215 @@ function getShopeeBaseApi(c: any): string {
     'https://affiliate.shopee.vn/api/v3'
   )
 }
+// ============================================================================
+// Handler: Product Info
+// ============================================================================
 
+export const productInfoHandler: AppRouteHandler<
+  ProductInfoRoute
+> = async (c) => {
+  const { url } = c.req.valid('json')
+
+  let productUrl: URL
+
+  try {
+    productUrl = new URL(url)
+  } catch {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'INVALID_URL',
+          message: 'Link Shopee không hợp lệ',
+        },
+      },
+      400 as any,
+    )
+  }
+
+  // Chỉ cho phép Shopee Việt Nam
+  if (
+    productUrl.hostname !== 'shopee.vn' &&
+    productUrl.hostname !== 'www.shopee.vn'
+  ) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'INVALID_SHOPEE_URL',
+          message: 'Hiện tại chỉ hỗ trợ link sản phẩm shopee.vn',
+        },
+      },
+      400 as any,
+    )
+  }
+
+  // Hỗ trợ dạng:
+  // https://shopee.vn/product/SHOP_ID/ITEM_ID
+  const match = productUrl.pathname.match(
+    /\/product\/(\d+)\/(\d+)/,
+  )
+
+  if (!match) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'PRODUCT_ID_NOT_FOUND',
+          message:
+            'Không tìm thấy shopId và itemId trong link Shopee',
+        },
+      },
+      400 as any,
+    )
+  }
+
+  const shopId = match[1]
+  const itemId = match[2]
+
+  const endpoint =
+    `https://shopee.vn/api/v4/item/get` +
+    `?itemid=${encodeURIComponent(itemId)}` +
+    `&shopid=${encodeURIComponent(shopId)}`
+
+  let response: Response
+
+  try {
+    response = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        accept: 'application/json',
+        referer: url,
+        'user-agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' +
+          'AppleWebKit/537.36 (KHTML, like Gecko) ' +
+          'Chrome/133.0.0.0 Safari/537.36',
+      },
+    })
+  } catch {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'SHOPEE_REQUEST_FAILED',
+          message: 'Không thể kết nối tới Shopee',
+        },
+      },
+      502 as any,
+    )
+  }
+
+  if (!response.ok) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'SHOPEE_HTTP_ERROR',
+          message: `Shopee trả HTTP ${response.status}`,
+        },
+      },
+      502 as any,
+    )
+  }
+
+  let payload: any
+
+  try {
+    payload = await response.json()
+  } catch {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'INVALID_SHOPEE_RESPONSE',
+          message: 'Shopee không trả dữ liệu JSON hợp lệ',
+        },
+      },
+      502 as any,
+    )
+  }
+
+  const item = payload?.data
+
+  if (!item) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'PRODUCT_NOT_FOUND',
+          message: 'Không lấy được thông tin sản phẩm',
+        },
+      },
+      502 as any,
+    )
+  }
+
+  // Giá Shopee API thường sử dụng đơn vị 1/100000 VNĐ.
+  const normalizePrice = (
+    value: unknown,
+  ): number | null => {
+    if (
+      typeof value !== 'number' ||
+      !Number.isFinite(value)
+    ) {
+      return null
+    }
+
+    return Math.round(value / 100000)
+  }
+
+  const price =
+    normalizePrice(item.price) ??
+    normalizePrice(item.price_min) ??
+    0
+
+  const priceMin =
+    normalizePrice(item.price_min)
+
+  const priceMax =
+    normalizePrice(item.price_max)
+
+  const imageUrl =
+    typeof item.image === 'string' && item.image
+      ? `https://down-vn.img.susercontent.com/file/${item.image}`
+      : null
+
+  return c.json(
+    {
+      success: true,
+      data: {
+        shopId,
+        itemId,
+
+        productName:
+          typeof item.name === 'string'
+            ? item.name
+            : '',
+
+        price,
+        priceMin,
+        priceMax,
+        imageUrl,
+
+        shopLocation:
+          typeof item.shop_location === 'string'
+            ? item.shop_location
+            : null,
+
+        stock:
+          typeof item.stock === 'number'
+            ? item.stock
+            : null,
+
+        sold:
+          typeof item.historical_sold === 'number'
+            ? item.historical_sold
+            : null,
+      },
+    },
+    200 as any,
+  )
+}
 // ============================================================================
 // 1. Handler: Convert Link Affiliate
 // Hỗ trợ tối đa 5 link + subId1 -> subId5
