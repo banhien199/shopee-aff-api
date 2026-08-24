@@ -646,8 +646,123 @@ export const ShopeeForbiddenErrorSchema = z
   .openapi('ShopeeForbiddenErrorResponse')
 
 // ============================================================================
+// 0. SCHEMAS: Product Info
+// ============================================================================
+
+export const ProductInfoBodySchema = z
+  .object({
+    url: z
+      .string()
+      .url('URL sản phẩm Shopee không hợp lệ')
+      .openapi({
+        example:
+          'https://shopee.vn/product/972250248/49115248207',
+        description:
+          '🔴 [BẮT BUỘC] Link sản phẩm Shopee',
+      }),
+  })
+  .openapi('ProductInfoRequest')
+
+export const ProductInfoResponseSchema = z
+  .object({
+    success: z.boolean(),
+
+    data: z
+      .object({
+        shopId: z.string(),
+        itemId: z.string(),
+
+        productName: z.string(),
+
+        price: z.number(),
+
+        priceMin: z.number().nullable().optional(),
+        priceMax: z.number().nullable().optional(),
+
+        imageUrl: z.string().nullable().optional(),
+
+        shopLocation: z.string().nullable().optional(),
+
+        stock: z.number().nullable().optional(),
+
+        sold: z.number().nullable().optional(),
+      })
+      .optional(),
+
+    error: z
+      .object({
+        code: z.string(),
+        message: z.string(),
+      })
+      .optional(),
+  })
+  .openapi('ProductInfoResponse')
+
+// ============================================================================
 // 1. ROUTE: Convert Link Affiliate
 // ============================================================================
+// ============================================================================
+// 0. ROUTE: Product Info
+// ============================================================================
+
+export const productInfoRoute = createRoute({
+  method: 'post',
+
+  path: '/product-info',
+
+  operationId: 'getShopeeProductInfo',
+
+  tags: ['Shopee Affiliate'],
+
+  summary: 'Lấy thông tin sản phẩm Shopee',
+
+  description:
+    'Nhận link sản phẩm Shopee và trả về thông tin sản phẩm thật như tên, giá và hình ảnh.',
+
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: ProductInfoBodySchema,
+        },
+      },
+
+      required: true,
+    },
+  },
+
+  responses: {
+    200: {
+      description: 'Lấy thông tin sản phẩm thành công',
+
+      content: {
+        'application/json': {
+          schema: ProductInfoResponseSchema,
+        },
+      },
+    },
+
+    400: {
+      description: 'Link Shopee không hợp lệ',
+
+      content: {
+        'application/json': {
+          schema: ProductInfoResponseSchema,
+        },
+      },
+    },
+
+    502: {
+      description: 'Không lấy được dữ liệu từ Shopee',
+
+      content: {
+        'application/json': {
+          schema: ProductInfoResponseSchema,
+        },
+      },
+    },
+  },
+})
 
 export const convertLinkRoute = createRoute({
   method: 'post',
@@ -802,3 +917,5 @@ export type ConvertLinkRoute =
 
 export type ConversionReportsRoute =
   typeof conversionReportsRoute
+export type ProductInfoRoute =
+  typeof productInfoRoute
