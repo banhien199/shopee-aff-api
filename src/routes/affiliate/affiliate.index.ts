@@ -1,8 +1,19 @@
 import { createRouter } from '../../lib/create-app'
-import { conversionReportsHandler, convertLinkHandler } from './affiliate.handlers'
-import { conversionReportsRoute, convertLinkRoute } from './affiliate.routes'
+
+import {
+  conversionReportsHandler,
+  convertLinkHandler,
+  productInfoHandler,
+} from './affiliate.handlers'
+
+import {
+  conversionReportsRoute,
+  convertLinkRoute,
+  productInfoRoute,
+} from './affiliate.routes'
 
 const router = createRouter()
+  .openapi(productInfoRoute, productInfoHandler)
   .openapi(convertLinkRoute, convertLinkHandler)
   .openapi(conversionReportsRoute, conversionReportsHandler)
 
