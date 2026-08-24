@@ -73,27 +73,18 @@ if (!shopeeCookies) {
   const rawText = await response.text()
 
   try {
-    const json = JSON.parse(rawText)
-    return c.json(json, response.status as any)
-  } catch {
-    return c.json(
-      {
-        error: 'NON_JSON_RESPONSE',
-        status: response.status,
-        message: 'Shopee trả về phản hồi không phải JSON (có thể do Cookie không hợp lệ hoặc bị chặn)',
-        return c.json(
-  {
-    error: 'NON_JSON_RESPONSE',
-    status: response.status,
-    message:
-      'Shopee trả về phản hồi không phải JSON (có thể do Cookie không hợp lệ hoặc request bị từ chối)',
-  },
-  response.status as any,
-)
-      },
-      response.status as any,
-    )
-  }
+  const json = JSON.parse(rawText)
+  return c.json(json, response.status as any)
+} catch {
+  return c.json(
+    {
+      error: 'NON_JSON_RESPONSE',
+      status: response.status,
+      message:
+        'Shopee trả về phản hồi không phải JSON (có thể do Cookie không hợp lệ hoặc request bị từ chối)',
+    },
+    response.status as any,
+  )
 }
 
 // 2. Handler: Báo cáo Chuyển đổi (Conversion Reports) (POST)
