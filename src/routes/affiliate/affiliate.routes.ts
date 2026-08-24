@@ -674,18 +674,33 @@ export const ProductInfoResponseSchema = z
 
         productName: z.string(),
 
+        shopName: z
+          .string()
+          .optional(),
+
         price: z.number(),
 
-        priceMin: z.number().nullable().optional(),
-        priceMax: z.number().nullable().optional(),
+        imageUrl: z
+          .string()
+          .nullable()
+          .optional(),
 
-        imageUrl: z.string().nullable().optional(),
+        rating: z
+          .string()
+          .nullable()
+          .optional(),
 
-        shopLocation: z.string().nullable().optional(),
+        sales: z
+          .number()
+          .nullable()
+          .optional(),
 
-        stock: z.number().nullable().optional(),
+        cashback: z.number(),
 
-        sold: z.number().nullable().optional(),
+        dataSource: z
+          .string()
+          .nullable()
+          .optional(),
       })
       .optional(),
 
