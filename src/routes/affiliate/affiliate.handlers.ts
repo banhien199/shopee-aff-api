@@ -3,7 +3,22 @@ import type { ConversionReportsRoute, ConvertLinkRoute } from './affiliate.route
 
 // 1. Handler: Convert Link Affiliate (Hỗ trợ tối đa 5 link & advancedLinkParams subId1 -> subId5)
 export const convertLinkHandler: AppRouteHandler<ConvertLinkRoute> = async (c) => {
-  const { shopeeCookies, originalLink, subId1, subId2, subId3, subId4, subId5 } = c.req.valid('json')
+  const { originalLink, subId1, subId2, subId3, subId4, subId5 } = c.req.valid('json')
+
+const shopeeCookies = c.env?.SHOPEE_AFFILIATE_COOKIE
+
+if (!shopeeCookies) {
+  return c.json(
+    {
+      success: false,
+      error: {
+        code: 'SHOPEE_COOKIE_NOT_CONFIGURED',
+        message: 'Shopee Affiliate Cookie chưa được cấu hình trên server',
+      },
+    },
+    500,
+  )
+}
   const shopeeBaseApi = c.env?.SHOPEE_BASE_API || 'https://affiliate.shopee.vn/api/v3'
 
   // Chuẩn hóa endpoint
@@ -66,7 +81,15 @@ export const convertLinkHandler: AppRouteHandler<ConvertLinkRoute> = async (c) =
         error: 'NON_JSON_RESPONSE',
         status: response.status,
         message: 'Shopee trả về phản hồi không phải JSON (có thể do Cookie không hợp lệ hoặc bị chặn)',
-        raw: rawText,
+        return c.json(
+  {
+    error: 'NON_JSON_RESPONSE',
+    status: response.status,
+    message:
+      'Shopee trả về phản hồi không phải JSON (có thể do Cookie không hợp lệ hoặc request bị từ chối)',
+  },
+  response.status as any,
+)
       },
       response.status as any,
     )
@@ -75,7 +98,22 @@ export const convertLinkHandler: AppRouteHandler<ConvertLinkRoute> = async (c) =
 
 // 2. Handler: Báo cáo Chuyển đổi (Conversion Reports) (POST)
 export const conversionReportsHandler: AppRouteHandler<ConversionReportsRoute> = async (c) => {
-  const { shopeeCookies, startDate, endDate, limit, page, order_id, status } = c.req.valid('json')
+  const { startDate, endDate, limit, page, order_id, status } = c.req.valid('json')
+
+const shopeeCookies = c.env?.SHOPEE_AFFILIATE_COOKIE
+
+if (!shopeeCookies) {
+  return c.json(
+    {
+      success: false,
+      error: {
+        code: 'SHOPEE_COOKIE_NOT_CONFIGURED',
+        message: 'Shopee Affiliate Cookie chưa được cấu hình trên server',
+      },
+    },
+    500,
+  )
+}
   const shopeeBaseApi = c.env?.SHOPEE_BASE_API || 'https://affiliate.shopee.vn/api/v3'
 
   // Shopee Vietnam dùng ngày theo UTC+7: đầu ngày cho mốc bắt đầu,
