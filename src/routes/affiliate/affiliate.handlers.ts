@@ -51,63 +51,39 @@ export const productInfoHandler: AppRouteHandler<
     )
   }
 
-  // Chỉ cho phép Shopee Việt Nam
-  if (
-    productUrl.hostname !== 'shopee.vn' &&
-    productUrl.hostname !== 'www.shopee.vn'
-  ) {
+  const allowedHosts = new Set([
+    'shopee.vn',
+    'www.shopee.vn',
+    's.shopee.vn',
+    'shp.ee',
+  ])
+
+  if (!allowedHosts.has(productUrl.hostname)) {
     return c.json(
       {
         success: false,
         error: {
           code: 'INVALID_SHOPEE_URL',
-          message: 'Hiện tại chỉ hỗ trợ link sản phẩm shopee.vn',
+          message: 'Chỉ hỗ trợ link Shopee Việt Nam',
         },
       },
       400 as any,
     )
   }
 
-  // Hỗ trợ dạng:
-  // https://shopee.vn/product/SHOP_ID/ITEM_ID
-  const match = productUrl.pathname.match(
-    /\/product\/(\d+)\/(\d+)/,
+  const endpoint = new URL(
+    'https://data.addlivetag.com/product-data/product-data.php',
   )
 
-  if (!match) {
-    return c.json(
-      {
-        success: false,
-        error: {
-          code: 'PRODUCT_ID_NOT_FOUND',
-          message:
-            'Không tìm thấy shopId và itemId trong link Shopee',
-        },
-      },
-      400 as any,
-    )
-  }
-
-  const shopId = match[1]
-  const itemId = match[2]
-
-  const endpoint =
-    `https://shopee.vn/api/v4/item/get` +
-    `?itemid=${encodeURIComponent(itemId)}` +
-    `&shopid=${encodeURIComponent(shopId)}`
+  endpoint.searchParams.set('url', url.trim())
 
   let response: Response
 
   try {
-    response = await fetch(endpoint, {
+    response = await fetch(endpoint.toString(), {
       method: 'GET',
       headers: {
         accept: 'application/json',
-        referer: url,
-        'user-agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' +
-          'AppleWebKit/537.36 (KHTML, like Gecko) ' +
-          'Chrome/133.0.0.0 Safari/537.36',
       },
     })
   } catch {
@@ -115,8 +91,8 @@ export const productInfoHandler: AppRouteHandler<
       {
         success: false,
         error: {
-          code: 'SHOPEE_REQUEST_FAILED',
-          message: 'Không thể kết nối tới Shopee',
+          code: 'PRODUCT_DATA_REQUEST_FAILED',
+          message: 'Không thể kết nối tới nguồn dữ liệu sản phẩm',
         },
       },
       502 as any,
@@ -128,8 +104,8 @@ export const productInfoHandler: AppRouteHandler<
       {
         success: false,
         error: {
-          code: 'SHOPEE_HTTP_ERROR',
-          message: `Shopee trả HTTP ${response.status}`,
+          code: 'PRODUCT_DATA_HTTP_ERROR',
+          message: `Nguồn dữ liệu sản phẩm trả HTTP ${response.status}`,
         },
       },
       502 as any,
@@ -145,89 +121,92 @@ export const productInfoHandler: AppRouteHandler<
       {
         success: false,
         error: {
-          code: 'INVALID_SHOPEE_RESPONSE',
-          message: 'Shopee không trả dữ liệu JSON hợp lệ',
+          code: 'INVALID_PRODUCT_DATA_RESPONSE',
+          message: 'Nguồn dữ liệu sản phẩm trả dữ liệu không hợp lệ',
         },
       },
       502 as any,
     )
   }
 
-  const item = payload?.data
-
-  if (!item) {
+  if (
+    payload?.status !== 'success' ||
+    !payload?.productInfo
+  ) {
     return c.json(
       {
         success: false,
         error: {
           code: 'PRODUCT_NOT_FOUND',
-          message: 'Không lấy được thông tin sản phẩm',
+          message:
+            payload?.message ||
+            'Không lấy được thông tin sản phẩm Shopee',
         },
       },
       502 as any,
     )
   }
 
-  // Giá Shopee API thường sử dụng đơn vị 1/100000 VNĐ.
-  const normalizePrice = (
-    value: unknown,
-  ): number | null => {
-    if (
-      typeof value !== 'number' ||
-      !Number.isFinite(value)
-    ) {
-      return null
-    }
+  const info = payload.productInfo
 
-    return Math.round(value / 100000)
-  }
+  const commission =
+    typeof info.commission === 'number'
+      ? info.commission
+      : 0
 
-  const price =
-    normalizePrice(item.price) ??
-    normalizePrice(item.price_min) ??
-    0
-
-  const priceMin =
-    normalizePrice(item.price_min)
-
-  const priceMax =
-    normalizePrice(item.price_max)
-
-  const imageUrl =
-    typeof item.image === 'string' && item.image
-      ? `https://down-vn.img.susercontent.com/file/${item.image}`
-      : null
+  const cashback = Math.round(
+    commission * 0.4,
+  )
 
   return c.json(
     {
       success: true,
       data: {
-        shopId,
-        itemId,
-
-        productName:
-          typeof item.name === 'string'
-            ? item.name
+        itemId:
+          info.itemId !== undefined
+            ? String(info.itemId)
             : '',
 
-        price,
-        priceMin,
-        priceMax,
-        imageUrl,
+        shopId:
+          info.shopId !== undefined
+            ? String(info.shopId)
+            : '',
 
-        shopLocation:
-          typeof item.shop_location === 'string'
-            ? item.shop_location
+        productName:
+          typeof info.productName === 'string'
+            ? info.productName
+            : '',
+
+        shopName:
+          typeof info.shopName === 'string'
+            ? info.shopName
+            : '',
+
+        price:
+          typeof info.price === 'number'
+            ? info.price
+            : 0,
+
+        imageUrl:
+          typeof info.imageUrl === 'string'
+            ? info.imageUrl
             : null,
 
-        stock:
-          typeof item.stock === 'number'
-            ? item.stock
+        rating:
+          typeof info.rating === 'string'
+            ? info.rating
             : null,
 
-        sold:
-          typeof item.historical_sold === 'number'
-            ? item.historical_sold
+        sales:
+          typeof info.sales === 'number'
+            ? info.sales
+            : null,
+
+        cashback,
+
+        dataSource:
+          typeof info.dataSource === 'string'
+            ? info.dataSource
             : null,
       },
     },
