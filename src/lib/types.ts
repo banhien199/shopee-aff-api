@@ -5,6 +5,7 @@ export interface AppBindings {
     NODE_ENV?: string
     SERVER_URL?: string
     SHOPEE_BASE_API?: string
+    ADDLIVETAG_API_KEY?: string
   }
 }
 

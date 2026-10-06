@@ -77,6 +77,21 @@ export const productInfoHandler: AppRouteHandler<
 
   endpoint.searchParams.set('url', url.trim())
 
+  const apiKey = c.env?.ADDLIVETAG_API_KEY?.trim()
+
+  if (!apiKey) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'PRODUCT_DATA_API_KEY_NOT_CONFIGURED',
+          message: 'Nguồn dữ liệu sản phẩm chưa được cấu hình',
+        },
+      },
+      503 as any,
+    )
+  }
+
   let response: Response
 
   try {
@@ -84,6 +99,7 @@ export const productInfoHandler: AppRouteHandler<
       method: 'GET',
       headers: {
         accept: 'application/json',
+        'X-API-Key': apiKey,
       },
     })
   } catch {
@@ -100,6 +116,19 @@ export const productInfoHandler: AppRouteHandler<
   }
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'PRODUCT_DATA_AUTH_ERROR',
+            message: 'API key nguồn dữ liệu sản phẩm không hợp lệ hoặc chưa được cấp quyền',
+          },
+        },
+        502 as any,
+      )
+    }
+
     return c.json(
       {
         success: false,
