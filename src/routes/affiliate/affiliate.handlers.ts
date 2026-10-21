@@ -56,6 +56,7 @@ export const productInfoHandler: AppRouteHandler<
     'www.shopee.vn',
     's.shopee.vn',
     'shp.ee',
+    'vn.shp.ee',
   ])
 
   if (!allowedHosts.has(productUrl.hostname)) {

@@ -2,15 +2,33 @@ import { test, expect } from 'bun:test'
 import app from '../src/index.ts'
 
 const path = '/api/affiliate/product-info'
-const body = JSON.stringify({ url: 'https://s.shopee.vn/4qGBnNHxda' })
-
-function request(bindings) {
+function request(bindings, productUrl = 'https://s.shopee.vn/4qGBnNHxda') {
   return app.request(path, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body,
+    body: JSON.stringify({ url: productUrl }),
   }, bindings)
 }
+
+test('accepts vn.shp.ee product links', async () => {
+  const originalFetch = globalThis.fetch
+  let upstreamUrl
+  globalThis.fetch = async (url) => {
+    upstreamUrl = String(url)
+    return Response.json({ status: 'success', productInfo: {
+      itemId: 1, shopId: 2, productName: 'Sản phẩm', price: 100000,
+      commission: 10000,
+    } })
+  }
+  try {
+    const productUrl = 'https://vn.shp.ee/QfA9tEFJ'
+    const response = await request({ ADDLIVETAG_API_KEY: 'test-only-secret' }, productUrl)
+    expect(response.status).toBe(200)
+    expect(new URL(upstreamUrl).searchParams.get('url')).toBe(productUrl)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
 
 test('rejects missing Addlivetag key without calling upstream', async () => {
   const originalFetch = globalThis.fetch
