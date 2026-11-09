@@ -695,7 +695,7 @@ export const ProductInfoResponseSchema = z
           .nullable()
           .optional(),
 
-        cashback: z.number(),
+        commission: z.number(),
 
         dataSource: z
           .string()

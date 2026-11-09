@@ -59,7 +59,9 @@ test('sends Addlivetag key only in the upstream header', async () => {
     expect(response.status).toBe(200)
     expect(upstreamHeaders['X-API-Key']).toBe('test-only-secret')
     expect(upstreamUrl).not.toContain('test-only-secret')
-    expect((await response.json()).data.cashback).toBe(4000)
+    const payload = await response.json()
+    expect(payload.data.commission).toBe(10000)
+    expect(payload.data.cashback).toBeUndefined()
   } finally {
     globalThis.fetch = originalFetch
   }

@@ -184,10 +184,6 @@ export const productInfoHandler: AppRouteHandler<
       ? info.commission
       : 0
 
-  const cashback = Math.round(
-    commission * 0.4,
-  )
-
   return c.json(
     {
       success: true,
@@ -232,7 +228,10 @@ export const productInfoHandler: AppRouteHandler<
             ? info.sales
             : null,
 
-        cashback,
+        // Trả hoa hồng nguồn. Piggy là nơi duy nhất áp dụng tỷ lệ hoàn theo
+        // hạng khách hàng và phí dịch vụ; không được nhân thêm một tỷ lệ cố
+        // định tại Worker vì sẽ làm số tiền dự kiến lệch với số tiền đối soát.
+        commission,
 
         dataSource:
           typeof info.dataSource === 'string'
